@@ -1,10 +1,13 @@
 module StreamReader
 
-export BufferParts,
-    Reader,
-    IOReader
+export PartsIterator,
+    ReaderIterator,
+    IOReaderIterator,
+    DEFAULT_PART_SIZE
 
-type BufferParts
+const DEFAULT_PART_SIZE = 1024
+
+type PartsIterator
     size::Integer
     part_size::Integer
     left::Integer
@@ -12,10 +15,10 @@ type BufferParts
     part::Integer
     current_size::Integer
     
-    BufferParts(l::Integer, ps::Integer = 1024) = new(l, ps, 0, 0, 0, 0)
+    PartsIterator(s::Integer, ps::Integer = 0) = new(s, (ps == 0 ? DEFAULT_PART_SIZE : ps), 0, 0, 0, 0)
 end
 
-Base.start(p::BufferParts) = begin
+Base.start(p::PartsIterator) = begin
     s = p.size < p.part_size ? p.size : p.part_size
     p.left = p.size - s
     p.length = convert(Integer, ceil(p.size / p.part_size))
@@ -23,13 +26,13 @@ Base.start(p::BufferParts) = begin
     s
 end
 
-Base.done(p::BufferParts, state) = begin
+Base.done(p::PartsIterator, state) = begin
     state == 0 
 end
 
-Base.length(p::BufferParts) = p.length
+Base.length(p::PartsIterator) = p.length
 
-Base.next(p::BufferParts, state) = begin
+Base.next(p::PartsIterator, state) = begin
     p.current_size = state
     next_state = p.left < state ? p.left : state
     p.part += 1
@@ -37,35 +40,50 @@ Base.next(p::BufferParts, state) = begin
     state, next_state
 end
 
-type Reader
-    parts::BufferParts
+type ReaderIterator
+    parts::PartsIterator
     pre_start::Union(Nothing,Function)
     post_done::Union(Nothing,Function)
     read::Union(Nothing,Function)
+    iterating::Bool
     
-    Reader(bp::BufferParts, ps::Union(Nothing,Function) = nothing, pd::Union(Nothing,Function) = nothing) = new(bp, ps, pd, nothing)
-    Reader(ps::Function, bp::BufferParts, pd::Union(Nothing,Function) = nothing) = Reader(bp, ps, pd)
+    ReaderIterator(bp::PartsIterator; pre_start::Union(Nothing,Function) = nothing, post_done::Union(Nothing,Function) = nothing) = new(bp, pre_start, post_done, nothing, false)
+    ReaderIterator(ps::Function, bp::PartsIterator; kwargs...) = ReaderIterator(bp; pre_start=ps, kwargs...)
 end
 
-Base.start(sr::Reader) = begin
+Base.start(sr::ReaderIterator) = begin
     state = start(sr.parts)
     
     if sr.pre_start != nothing
         sr.pre_start(sr)
     end
+
+    sr.iterating = true
     
     return state
 end
 
-Base.done(sr::Reader, state) = done(sr.parts, state)
+Base.done(ri::ReaderIterator, state) = begin
+    d = done(ri.parts, state)
 
-Base.next(sr::Reader, state) = begin
+    if d && ri.iterating
+        ri.iterating = false
+
+        if ri.post_done != nothing
+            ri.post_done(ri)
+        end
+    end
+
+    return d
+end
+
+Base.next(sr::ReaderIterator, state) = begin
     sr.read(state), next(sr.parts, state)[2]
 end
 
 
-function IOReader(io::IO, bp::BufferParts; pre_start::Union(Nothing,Function) = nothing, kwargs...)
-    Reader(bp; kwargs...) do sr
+function IOReaderIterator(io::IO, bp::PartsIterator; pre_start::Union(Nothing,Function) = nothing, kwargs...)
+    ReaderIterator(bp; kwargs...) do sr
         sr.read = (size) -> Base.readbytes(io, size)
         if pre_start != nothing
             pre_start(sr)
@@ -73,6 +91,6 @@ function IOReader(io::IO, bp::BufferParts; pre_start::Union(Nothing,Function) = 
     end
 end
 
-IOReader(io::IO, len::Integer, bsize::Integer=1024; kwargs...) = IOReader(io, BufferParts(len, bsize); kwargs...)
+IOReaderIterator(io::IO, len::Integer, bsize::Integer=1024; kwargs...) = IOReaderIterator(io, PartsIterator(len, bsize); kwargs...)
 
 end

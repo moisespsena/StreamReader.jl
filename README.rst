@@ -6,36 +6,43 @@ The Julia Stream Reader Interface and basic implementation.
 Install
 -------
 
-
+```julia
     Pkg.clone("https://github.com/moisespsena/StreamReader.jl.git")
+```
     
-    
-Using Example
+Usage Example
 -------------
 
+```julia
     using StreamReader
-    
+
+    println(@sprintf "Default part size: %s" DEFAULT_PART_SIZE)
+
     open("test-data.txt", "w+") do f
         s = write(f, "God is Love!!")
         seekstart(f)
 
-        ir = IOReader(f, s)
-        println(string("1. default buffer size (", ir.parts.part_size, " bytes):"))
+        ir = IOReaderIterator(f, s)
+        println(@sprintf "1. With default part size (%s bytes):" ir.parts.part_size)
 
         for d in ir
-            println(string("data part: '", UTF8String(d), "'"))
+            println(@sprintf "data part: '%s'" UTF8String(d))
         end
 
         seekstart(f)
 
         println("")
-        println("2. buffer size with 4 bytes:")
 
-        ir = IOReader(f, s, 4)
+        part_size = 4
+
+        println(@sprintf "2. Part size with %s bytes:" part_size)
+
+        ir = IOReaderIterator(f, s, part_size)
 
         for d in ir
-            println(string("data part [", ir.parts.part, " of ", ir.parts.length, " parts, at ", ir.parts.current_size ," bytes] --> '", UTF8String(d), "'"))
+            println(@sprintf "data part [%s of %s parts, at %s bytes] --> '%s'"
+                ir.parts.part ir.parts.length ir.parts.current_size
+                UTF8String(d))
         end
     end
-    
-    
+```
