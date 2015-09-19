@@ -14,14 +14,19 @@ type PartsIterator
     length::Integer
     part::Integer
     current_size::Integer
+    _left::Integer
     
-    PartsIterator(s::Integer, ps::Integer = 0) = new(s, (ps == 0 ? DEFAULT_PART_SIZE : ps), 0, 0, 0, 0)
+    PartsIterator(s::Integer, ps::Integer = 0) = begin
+        ps = (ps == 0 ? DEFAULT_PART_SIZE : ps)
+        new(s, ps, 0,
+        convert(Integer, ceil(s / ps)), 0, 0, 0)
+    end
 end
 
 Base.start(p::PartsIterator) = begin
     s = p.size < p.part_size ? p.size : p.part_size
-    p.left = p.size - s
-    p.length = convert(Integer, ceil(p.size / p.part_size))
+    p.left = p.size
+    p._left = p.size - s
     p.part = 0
     s
 end
@@ -34,9 +39,10 @@ Base.length(p::PartsIterator) = p.length
 
 Base.next(p::PartsIterator, state) = begin
     p.current_size = state
-    next_state = p.left < state ? p.left : state
+    next_state = p._left < state ? p._left : state
     p.part += 1
-    p.left -= next_state
+    p.left -= state
+    p._left -= next_state
     state, next_state
 end
 
