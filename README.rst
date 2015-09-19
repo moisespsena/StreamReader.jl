@@ -6,14 +6,16 @@ The Julia Stream Reader Interface and basic implementation.
 Install
 -------
 
-```julia
+.. code-block:: julia
+
     Pkg.clone("https://github.com/moisespsena/StreamReader.jl.git")
-```
+
     
 Usage Example
 -------------
 
-```julia
+.. code-block:: julia
+
     using StreamReader
 
     println(@sprintf "Default part size: %s" DEFAULT_PART_SIZE)
@@ -45,4 +47,3 @@ Usage Example
                 UTF8String(d))
         end
     end
-```
