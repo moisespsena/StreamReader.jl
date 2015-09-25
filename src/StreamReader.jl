@@ -4,7 +4,9 @@ export PartsIterator,
     ReaderIterator,
     IOReaderIterator,
     ReaderListIterator,
-    DEFAULT_PART_SIZE
+    DEFAULT_PART_SIZE,
+    loaded,
+    loaded_pct
 
 const DEFAULT_PART_SIZE = 1024
 
@@ -85,8 +87,16 @@ Base.done(ri::ReaderIterator, state) = begin
     return d
 end
 
-Base.next(sr::ReaderIterator, state) = begin
-    sr.read(state), next(sr.parts, state)[2]
+Base.next(ri::ReaderIterator, state) = begin
+    ri.read(state), next(ri.parts, state)[2]
+end
+
+function loaded(ri::ReaderIterator)
+    ri.parts.size - ri.parts.left
+end
+
+function loaded_pct(ri::ReaderIterator)
+    loaded(ri) * 100 / ri.parts.size
 end
 
 type ReaderListIterator
@@ -114,9 +124,9 @@ Base.next(ri::ReaderListIterator, state) = begin
     (state, ri.reader), state+1
 end
 
-function IOReaderIterator(io::IO, bp::PartsIterator; pre_start::Union(Nothing,Function) = nothing, kwargs...)
+function IOReaderIterator{T}(io::IO, bp::PartsIterator; t::Type{T} = Uint8, pre_start::Union(Nothing,Function) = nothing, kwargs...)
     ReaderIterator(bp; kwargs...) do sr
-        sr.read = (size) -> Base.readbytes(io, size)
+        sr.read = (size) -> Base.read(io, t, size)
         if pre_start != nothing
             pre_start(sr)
         end
