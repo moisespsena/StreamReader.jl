@@ -3,9 +3,11 @@ module StreamReader
 export PartsIterator,
     ReaderIterator,
     IOReaderIterator,
+    ReaderListIterator,
     DEFAULT_PART_SIZE
 
 const DEFAULT_PART_SIZE = 1024
+
 
 type PartsIterator
     size::Integer
@@ -87,6 +89,30 @@ Base.next(sr::ReaderIterator, state) = begin
     sr.read(state), next(sr.parts, state)[2]
 end
 
+type ReaderListIterator
+    make_reader::Function
+    count::Integer
+    num::Integer
+    reader::Union(Nothing, ReaderIterator)
+
+    ReaderListIterator(mr::Function, c::Integer) = new(mr, c, 0, nothing)
+end
+
+Base.start(ri::ReaderListIterator) = begin
+    ri.num = 0
+    ri.reader = nothing
+    return 1
+end
+
+Base.done(ri::ReaderListIterator, state) = begin
+    return state > ri.count
+end
+
+Base.next(ri::ReaderListIterator, state) = begin
+    ri.num = state
+    ri.reader = ri.make_reader(ri)
+    (state, ri.reader), state+1
+end
 
 function IOReaderIterator(io::IO, bp::PartsIterator; pre_start::Union(Nothing,Function) = nothing, kwargs...)
     ReaderIterator(bp; kwargs...) do sr
