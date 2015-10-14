@@ -93,4 +93,13 @@ facts("All") do
 
     @fact done(pit, s) --> true
     @fact [(1, 3, 3, 7, 30.0), (2, 3, 6, 4, 60.0), (3, 3, 9, 1, 90.0), (4, 1, 10, 0, 100.0)] --> [(pit.part, d, pit.loaded, pit.left, ceil(loaded_pct(pit), 2)) for d in pit]
+
+
+    io = IOBuffer()
+    s = write(io, "God is Love!!")
+    seekstart(io)
+    ir = IOReaderIterator(io, s, 4)
+    edata = String["God ", "is L", "ove!", "!"]
+    data = String[UTF8String(_) for _ in collect(ir)]
+    @fact edata --> data
 end
