@@ -4,7 +4,5 @@ julia:
   - nightly
   - 0.3
   - 0.3.10
-before_install:
-  - sudo pip install codecov
 after_success:
-  - codecov
+  - julia -e 'cd(Pkg.dir("MyPkg")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
