@@ -6,10 +6,11 @@ The Julia Stream Reader Interface and basic implementation.
 .. image:: https://travis-ci.org/moisespsena/StreamReader.jl.svg?branch=master
     :target: https://travis-ci.org/moisespsena/StreamReader.jl
 
-
 .. image:: https://coveralls.io/repos/moisespsena/StreamReader.jl/badge.svg?branch=master&service=github
   :target: https://coveralls.io/github/moisespsena/StreamReader.jl?branch=master
 
+.. image:: http://codecov.io/github/moisespsena/StreamReader.jl/coverage.svg?branch=master
+    :target: http://codecov.io/github/moisespsena/StreamReader.jl?branch=master
 
 
 Install
