@@ -1,82 +1,96 @@
 using StreamReader
-using Base.Test
+using FactCheck
 
-@test DEFAULT_PART_SIZE == 1024
+facts("All") do
+    @fact DEFAULT_PART_SIZE --> 1024
+    @fact calculate(10) --> (1, 10, 10)
+    @fact calculate(10, 3) --> (4, 3, 1)
+    @fact calculate(1024) --> (1, 1024, 1024)
+    @fact calculate(2048) --> (2, 1024, 1024)
+    @fact calculate(2024) --> (2, 1024, 1000)
 
-pit = PartsIterator(10)
-@test pit.size == 10
-@test pit.part_size == DEFAULT_PART_SIZE
-@test pit.left == 0
-@test pit.length == 1
-@test pit.part == 0
-@test pit.current_size == 0
+    pit = PartsIterator(10)
+    @fact pit.size --> 10
+    @fact pit.part_size --> 10
+    @fact pit.left --> 0
+    @fact pit.length --> 1
+    @fact pit.part --> 0
+    @fact pit.current_size --> 0
+    @fact pit.loaded --> 0
 
-pit = PartsIterator(10, 3)
+    pit = PartsIterator(10, 3)
 
-@test pit.size == 10
-@test pit.part_size == 3
-@test pit.left == 0
-@test pit.length == 4
-@test pit.part == 0
-@test pit.current_size == 0
+    @fact pit.size --> 10
+    @fact pit.part_size --> 3
+    @fact pit.left --> 0
+    @fact pit.length --> 4
+    @fact pit.part --> 0
+    @fact pit.current_size --> 0
+    @fact pit.loaded --> 0
 
-s = start(pit)
-@test s == 3
-@test pit.part_size == 3
-@test pit.left == 10
-@test pit.length == 4
-@test pit.part == 0
-@test pit.current_size == 0
+    s = start(pit)
+    @fact s --> 3
+    @fact pit.part_size --> 3
+    @fact pit.left --> 10
+    @fact pit.length --> 4
+    @fact pit.part --> 0
+    @fact pit.current_size --> 0
+    @fact pit.loaded --> 0
 
-@test !done(pit, s)
-@test pit.part_size == 3
-@test pit.left == 10
-@test pit.length == 4
-@test pit.part == 0
-@test pit.current_size == 0
+    @fact done(pit, s) --> false
+    @fact pit.part_size --> 3
+    @fact pit.left --> 10
+    @fact pit.length --> 4
+    @fact pit.part --> 0
+    @fact pit.current_size --> 0
+    @fact pit.loaded --> 0
 
-d, s = next(pit, s)
-@test d == 3
-@test s == 3
-@test pit.part_size == 3
-@test pit.left == 7
-@test pit.length == 4
-@test pit.part == 1
-@test pit.current_size == 3
+    d, s = next(pit, s)
+    @fact d --> 3
+    @fact s --> 3
+    @fact pit.part_size --> 3
+    @fact pit.left --> 7
+    @fact pit.length --> 4
+    @fact pit.part --> 1
+    @fact pit.current_size --> 3
+    @fact pit.loaded --> 3
 
-@test !done(pit, s)
+    @fact done(pit, s) --> false
 
-d, s = next(pit, s)
-@test d == 3
-@test s == 3
-@test pit.part_size == 3
-@test pit.left == 4
-@test pit.length == 4
-@test pit.part == 2
-@test pit.current_size == 3
+    d, s = next(pit, s)
+    @fact d --> 3
+    @fact s --> 3
+    @fact pit.part_size --> 3
+    @fact pit.left --> 4
+    @fact pit.length --> 4
+    @fact pit.part --> 2
+    @fact pit.current_size --> 3
+    @fact pit.loaded --> 6
 
-@test !done(pit, s)
+    @fact done(pit, s) --> false
 
-d, s = next(pit, s)
-@test d == 3
-@test s == 1
-@test pit.part_size == 3
-@test pit.left == 1
-@test pit.length == 4
-@test pit.part == 3
-@test pit.current_size == 3
+    d, s = next(pit, s)
+    @fact d --> 3
+    @fact s --> 1
+    @fact pit.part_size --> 3
+    @fact pit.left --> 1
+    @fact pit.length --> 4
+    @fact pit.part --> 3
+    @fact pit.current_size --> 3
+    @fact pit.loaded --> 9
 
-@test !done(pit, s)
+    @fact done(pit, s) --> false
 
-d, s = next(pit, s)
-@test d == 1
-@test s == 0
-@test pit.part_size == 3
-@test pit.left == 0
-@test pit.length == 4
-@test pit.part == 4
-@test pit.current_size == 1
+    d, s = next(pit, s)
+    @fact d --> 1
+    @fact s --> 0
+    @fact pit.part_size --> 3
+    @fact pit.left --> 0
+    @fact pit.length --> 4
+    @fact pit.part --> 4
+    @fact pit.current_size --> 1
+    @fact pit.loaded --> 10
 
-@test done(pit, s)
-@test [(1, 3, 7), (2, 3, 4), (3, 3, 1), (4, 1, 0)] == [(pit.part, d, pit.left) for d in pit]
-
+    @fact done(pit, s) --> true
+    @fact [(1, 3, 3, 7, 30.0), (2, 3, 6, 4, 60.0), (3, 3, 9, 1, 90.0), (4, 1, 10, 0, 100.0)] --> [(pit.part, d, pit.loaded, pit.left, ceil(loaded_pct(pit), 2)) for d in pit]
+end

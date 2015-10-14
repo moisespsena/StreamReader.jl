@@ -1,53 +1,85 @@
 module StreamReader
 
+if VERSION < v"0.4.0-dev"
+    using Docile
+    eval(:(@docstrings(manual = ["../README.md"])))
+end
+
 export PartsIterator,
     ReaderIterator,
     IOReaderIterator,
+    IOStringReaderIterator,
     ReaderListIterator,
     DEFAULT_PART_SIZE,
-    loaded,
-    loaded_pct
+    loaded_pct,
+    calculate
 
 const DEFAULT_PART_SIZE = 1024
 
+@doc """
+Calculate sizes.
+Return tuple of:
+    1: Number of parts
+    2: The parts size
+    3: The last part size
+""" ->
+function calculate(total_size::Integer, part_size::Integer=0)
+    part_size = (part_size == 0 ? DEFAULT_PART_SIZE : part_size)
 
+    if part_size > total_size
+        part_size = total_size
+    end
+
+    parts = convert(Integer, ceil(total_size / part_size))
+    last_part_size = total_size % part_size
+    if last_part_size == 0
+        last_part_size = part_size
+    end
+    (parts, part_size, last_part_size)
+end
+
+@doc """
+Iterator over parts
+""" ->
 type PartsIterator
     size::Integer
     part_size::Integer
-    left::Integer
+    loaded::Integer
     length::Integer
     part::Integer
     current_size::Integer
-    _left::Integer
+    left::Integer
+    last_part_size::Integer
     
     PartsIterator(s::Integer, ps::Integer = 0) = begin
-        ps = (ps == 0 ? DEFAULT_PART_SIZE : ps)
-        new(s, ps, 0,
-        convert(Integer, ceil(s / ps)), 0, 0, 0)
+        l, ps, lps = calculate(s, ps)
+        new(s, ps, 0, l, 0, 0, 0, lps)
     end
 end
 
 Base.start(p::PartsIterator) = begin
     s = p.size < p.part_size ? p.size : p.part_size
-    p.left = p.size
-    p._left = p.size - s
+    p.loaded = 0
     p.part = 0
+    p.left = p.size
     s
 end
 
-Base.done(p::PartsIterator, state) = begin
-    state == 0 
-end
+Base.done(p::PartsIterator, state) = p.loaded == p.size
 
 Base.length(p::PartsIterator) = p.length
 
 Base.next(p::PartsIterator, state) = begin
     p.current_size = state
-    next_state = p._left < state ? p._left : state
-    p.part += 1
     p.left -= state
-    p._left -= next_state
+    p.part += 1
+    p.loaded += state
+    next_state = p.left < state ? p.left : state
     state, next_state
+end
+
+function loaded_pct(pi::PartsIterator)
+    pi.loaded * 100 / pi.size
 end
 
 type ReaderIterator
@@ -57,8 +89,11 @@ type ReaderIterator
     read::Union(Nothing,Function)
     iterating::Bool
     
-    ReaderIterator(bp::PartsIterator; pre_start::Union(Nothing,Function) = nothing, post_done::Union(Nothing,Function) = nothing) = new(bp, pre_start, post_done, nothing, false)
-    ReaderIterator(ps::Function, bp::PartsIterator; kwargs...) = ReaderIterator(bp; pre_start=ps, kwargs...)
+    ReaderIterator(bp::PartsIterator; pre_start::Union(Nothing,Function) = nothing,
+        post_done::Union(Nothing,Function) = nothing) = new(bp, pre_start, 
+        post_done, nothing, false)
+    ReaderIterator(ps::Function, bp::PartsIterator; kwargs...) = ReaderIterator(bp;
+        pre_start=ps, kwargs...)
 end
 
 Base.start(sr::ReaderIterator) = begin
@@ -91,13 +126,8 @@ Base.next(ri::ReaderIterator, state) = begin
     ri.read(state), next(ri.parts, state)[2]
 end
 
-function loaded(ri::ReaderIterator)
-    ri.parts.size - ri.parts.left
-end
-
-function loaded_pct(ri::ReaderIterator)
-    loaded(ri) * 100 / ri.parts.size
-end
+loaded(ri::ReaderIterator) = loaded(ri.parts)
+loaded_pct(ri::ReaderIterator) = loaded_pct(ri.parts)
 
 type ReaderListIterator
     make_reader::Function
@@ -124,15 +154,35 @@ Base.next(ri::ReaderListIterator, state) = begin
     (state, ri.reader), state+1
 end
 
-function IOReaderIterator{T}(io::IO, bp::PartsIterator; t::Type{T} = Uint8, pre_start::Union(Nothing,Function) = nothing, kwargs...)
-    ReaderIterator(bp; kwargs...) do sr
-        sr.read = (size) -> Base.read(io, t, size)
+function set_data_type{T}(ri::ReaderIterator, data_type::Type{T})
+    old_read = ri.read
+    ri.read = (size) -> data_type(old_read(size))
+end
+
+function IOReaderIterator{T,D}(io::IO, bp::PartsIterator; read_type::Type{T} = Uint8,
+    data_type::Type{D} = Nothing, pre_start::Union(Nothing,Function) = nothing, kwargs...)
+    ReaderIterator(bp; kwargs...) do ri
+        ri.read = (size) -> Base.read(io, read_type, size)
+
+        if data_type != Nothing
+            set_data_type(ri, data_type)
+        end
+
         if pre_start != nothing
-            pre_start(sr)
+            pre_start(ri)
         end
     end
 end
 
-IOReaderIterator(io::IO, len::Integer, bsize::Integer=1024; kwargs...) = IOReaderIterator(io, PartsIterator(len, bsize); kwargs...)
+IOReaderIterator(io::IO, len::Integer, bsize::Integer=0; kwargs...) = IOReaderIterator(io,
+    PartsIterator(len, bsize); kwargs...)
+
+function IOStringReaderIterator{D<:String}(io::IO, pi::PartsIterator;
+    data_type::Type{D} = UTF8String, kwargs...)
+    IOReaderIterator(io, pi; data_type=data_type, kwargs...)
+end
+
+IOStringReaderIterator(io::IO, len::Integer, bsize::Integer=0; kwargs...) = IOStringReaderIterator(io,
+    PartsIterator(len, bsize); kwargs...)
 
 end
