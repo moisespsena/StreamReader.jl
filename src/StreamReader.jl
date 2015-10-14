@@ -83,10 +83,11 @@ type ReaderIterator
     post_done::Union(Nothing,Function)
     read::Union(Nothing,Function)
     iterating::Bool
+    num::Integer
     
     ReaderIterator(bp::PartsIterator; pre_start::Union(Nothing,Function) = nothing,
         post_done::Union(Nothing,Function) = nothing) = new(bp, pre_start, 
-        post_done, nothing, false)
+        post_done, nothing, false, 0)
     ReaderIterator(ps::Function, bp::PartsIterator; kwargs...) = ReaderIterator(bp;
         pre_start=ps, kwargs...)
 end
@@ -99,6 +100,7 @@ Base.start(sr::ReaderIterator) = begin
     end
 
     sr.iterating = true
+    sr.num = 0
     
     return state
 end
@@ -118,6 +120,7 @@ Base.done(ri::ReaderIterator, state) = begin
 end
 
 Base.next(ri::ReaderIterator, state) = begin
+    ri.num += 1
     ri.read(state), next(ri.parts, state)[2]
 end
 

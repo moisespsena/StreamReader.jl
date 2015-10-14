@@ -94,12 +94,32 @@ facts("All") do
     @fact done(pit, s) --> true
     @fact [(1, 3, 3, 7, 30.0), (2, 3, 6, 4, 60.0), (3, 3, 9, 1, 90.0), (4, 1, 10, 0, 100.0)] --> [(pit.part, d, pit.loaded, pit.left, ceil(loaded_pct(pit), 2)) for d in pit]
 
+    #### READER ITERATOR TEST #####
 
     io = IOBuffer()
     s = write(io, "God is Love!!")
     seekstart(io)
-    ir = IOReaderIterator(io, s, 4)
+    ir = IOStringReaderIterator(io, s, 4)
     edata = String["God ", "is L", "ove!", "!"]
-    data = String[UTF8String(_) for _ in collect(ir)]
+    data = collect(ir)
     @fact edata --> data
+
+    #### READER LIST ITERATOR TEST #####
+    
+    data = "God is Love!!"
+    io = IOBuffer()
+    s = write(io, data)
+    seekstart(io)
+    num_parts, parts_size, last_part_size = calculate(s, 4)
+    parts_size_arr = Integer[parts_size for i in 1:num_parts-1]
+    push!(parts_size_arr, last_part_size)
+
+    edata = {{"Go", "d "}, {"is", " L"}, {"ov", "e!"}, {"!"}}
+
+    rli = ReaderListIterator((mri) -> IOStringReaderIterator(io, parts_size_arr[mri.num], 2), num_parts)
+    for (num, sri) in rli
+        for d in sri
+            @fact d --> edata[num][sri.num] "Mismatch edata[$num][$(sri.num)]"
+        end
+    end
 end
