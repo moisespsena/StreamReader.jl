@@ -1,4 +1,4 @@
-module StreamRe
+module StreamReader
 
 export PartsIterator,
     ReaderIterator,
