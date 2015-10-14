@@ -1,9 +1,4 @@
-module StreamReader
-
-if VERSION < v"0.4.0-dev"
-    using Docile
-    eval(:(@docstrings(manual = ["../README.md"])))
-end
+module StreamRe
 
 export PartsIterator,
     ReaderIterator,
@@ -16,13 +11,13 @@ export PartsIterator,
 
 const DEFAULT_PART_SIZE = 1024
 
-@doc """
+"""
 Calculate sizes.
 Return tuple of:
     1: Number of parts
     2: The parts size
     3: The last part size
-""" ->
+"""
 function calculate(total_size::Integer, part_size::Integer=0)
     part_size = (part_size == 0 ? DEFAULT_PART_SIZE : part_size)
 
@@ -38,9 +33,9 @@ function calculate(total_size::Integer, part_size::Integer=0)
     (parts, part_size, last_part_size)
 end
 
-@doc """
+"""
 Iterator over parts
-""" ->
+"""
 type PartsIterator
     size::Integer
     part_size::Integer
