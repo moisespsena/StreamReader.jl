@@ -5,4 +5,4 @@ julia:
   - 0.3
   - 0.3.10
 after_success:
-  - julia -e 'cd(Pkg.dir("MyPkg")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
+  - julia -e 'cd(Pkg.dir("${JL_PKG}")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
