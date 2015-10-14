@@ -4,3 +4,7 @@ julia:
   - nightly
   - 0.3
   - 0.3.10
+before_install:
+  - pip install codecov
+after_success:
+  - codecov
