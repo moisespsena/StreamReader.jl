@@ -10,8 +10,8 @@ export PartsIterator,
     calculate
 
 const DEFAULT_PART_SIZE = 1024
-const N = None
-const N_TYPE = Type{None}
+const N = Void
+const N_TYPE = Type{N}
 const STR_TYPE = isdefined(:AbstractString)? AbstractString : String
 
 """
