@@ -92,7 +92,7 @@ facts("All") do
     @fact pit.loaded --> 10
 
     @fact done(pit, s) --> true
-    @fact [(1, 3, 3, 7, 30.0), (2, 3, 6, 4, 60.0), (3, 3, 9, 1, 90.0), (4, 1, 10, 0, 100.0)] --> [(pit.part, d, pit.loaded, pit.left, ceil(loaded_pct(pit), 2)) for d in pit]
+    @fact [(1, 3, 3, 7, 30.0), (2, 3, 6, 4, 60.0), (3, 3, 9, 1, 90.0), (4, 1, 10, 0, 100.0)] --> [(pit.part, d, pit.loaded, pit.left, ceil(loadedpct(pit), 2)) for d in pit]
 
     #### READER ITERATOR TEST #####
 

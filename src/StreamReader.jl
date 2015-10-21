@@ -6,7 +6,7 @@ export PartsIterator,
     IOStringReaderIterator,
     ReaderListIterator,
     DEFAULT_PART_SIZE,
-    loaded_pct,
+    loadedpct,
     calculate
 
 const DEFAULT_PART_SIZE = 1024
@@ -76,30 +76,30 @@ Base.next(p::PartsIterator, state) = begin
     state, next_state
 end
 
-function loaded_pct(pi::PartsIterator)
+function loadedpct(pi::PartsIterator)
     pi.loaded * 100 / pi.size
 end
 
 type ReaderIterator
     parts::PartsIterator
-    pre_start::Union(N_TYPE,Function)
-    post_done::Union(N_TYPE,Function)
+    prestart::Union(N_TYPE,Function)
+    postdone::Union(N_TYPE,Function)
     read::Union(N_TYPE,Function)
     iterating::Bool
     num::Integer
     
-    ReaderIterator(bp::PartsIterator; pre_start::Union(N_TYPE,Function) = N,
-        post_done::Union(N_TYPE,Function) = N) = new(bp, pre_start, 
-        post_done, N, false, 0)
+    ReaderIterator(bp::PartsIterator; prestart::Union(N_TYPE,Function) = N,
+        postdone::Union(N_TYPE,Function) = N) = new(bp, prestart, 
+        postdone, N, false, 0)
     ReaderIterator(ps::Function, bp::PartsIterator; kwargs...) = ReaderIterator(bp;
-        pre_start=ps, kwargs...)
+        prestart=ps, kwargs...)
 end
 
 Base.start(sr::ReaderIterator) = begin
     state = start(sr.parts)
     
-    if sr.pre_start != N
-        sr.pre_start(sr)
+    if sr.prestart != N
+        sr.prestart(sr)
     end
 
     sr.iterating = true
@@ -114,8 +114,8 @@ Base.done(ri::ReaderIterator, state) = begin
     if d && ri.iterating
         ri.iterating = false
 
-        if ri.post_done != N
-            ri.post_done(ri)
+        if ri.postdone != N
+            ri.postdone(ri)
         end
     end
 
@@ -128,10 +128,10 @@ Base.next(ri::ReaderIterator, state) = begin
 end
 
 loaded(ri::ReaderIterator) = loaded(ri.parts)
-loaded_pct(ri::ReaderIterator) = loaded_pct(ri.parts)
+loadedpct(ri::ReaderIterator) = loadedpct(ri.parts)
 
 type ReaderListIterator
-    make_reader::Function
+    makereader::Function
     count::Integer
     num::Integer
     reader::Union(N_TYPE, ReaderIterator)
@@ -151,26 +151,26 @@ end
 
 Base.next(ri::ReaderListIterator, state) = begin
     ri.num = state
-    ri.reader = ri.make_reader(ri)
+    ri.reader = ri.makereader(ri)
     (state, ri.reader), state+1
 end
 
-function set_data_type{T}(ri::ReaderIterator, data_type::Type{T})
-    old_read = ri.read
-    ri.read = (size) -> data_type(old_read(size))
+function setdatatype{T}(ri::ReaderIterator, datatype::Type{T})
+    oldread = ri.read
+    ri.read = (size) -> datatype(oldread(size))
 end
 
 function IOReaderIterator{T,D}(io::IO, bp::PartsIterator; read_type::Type{T} = Uint8,
-    data_type::Type{D} = N_TYPE, pre_start::Union(N_TYPE,Function) = N, kwargs...)
+    datatype::Type{D} = N_TYPE, prestart::Union(N_TYPE,Function) = N, kwargs...)
     ReaderIterator(bp; kwargs...) do ri
         ri.read = (size) -> Base.read(io, read_type, size)
 
-        if data_type != N_TYPE
-            set_data_type(ri, data_type)
+        if datatype != N_TYPE
+            setdatatype(ri, datatype)
         end
 
-        if pre_start != N
-            pre_start(ri)
+        if prestart != N
+            prestart(ri)
         end
     end
 end
@@ -179,8 +179,8 @@ IOReaderIterator(io::IO, len::Integer, bsize::Integer=0; kwargs...) = IOReaderIt
     PartsIterator(len, bsize); kwargs...)
 
 function IOStringReaderIterator{D<:STR_TYPE}(io::IO, pi::PartsIterator;
-    data_type::Type{D} = UTF8String, kwargs...)
-    IOReaderIterator(io, pi; data_type=data_type, kwargs...)
+    datatype::Type{D} = UTF8String, kwargs...)
+    IOReaderIterator(io, pi; datatype=datatype, kwargs...)
 end
 
 IOStringReaderIterator(io::IO, len::Integer, bsize::Integer=0; kwargs...) = IOStringReaderIterator(io,
